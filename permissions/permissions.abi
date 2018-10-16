@@ -1,0 +1,130 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Oct 15 05:07:05 2018",
+    "version": "eosio::abi/1.0",
+    "structs": [
+        {
+            "name": "hasauth",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "reqauth",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "reqauth2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "permission",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "reqauth3",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "permission",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "send",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sent",
+                    "type": "name"
+                },
+                {
+                    "name": "p_sent",
+                    "type": "name"
+                },
+                {
+                    "name": "req",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "send2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sent",
+                    "type": "name"
+                },
+                {
+                    "name": "p_sent",
+                    "type": "name"
+                },
+                {
+                    "name": "req",
+                    "type": "name"
+                },
+                {
+                    "name": "p_req",
+                    "type": "name"
+                }
+            ]
+        }
+    ],
+    "types": [],
+    "actions": [
+        {
+            "name": "hasauth",
+            "type": "hasauth",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reqauth",
+            "type": "reqauth",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reqauth2",
+            "type": "reqauth2",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reqauth3",
+            "type": "reqauth3",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "send",
+            "type": "send",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "send2",
+            "type": "send2",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [],
+    "ricardian_clauses": [],
+    "abi_extensions": []
+}
