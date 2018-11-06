@@ -1,0 +1,7 @@
+cleos set account permission actionsend active '{"threshold": 1,"keys": [{"key": "EOS5
+t64nTyo97UbW2Qomx3G9umWLRVb5ZnVWzZ4Lx9DVf2okdNsL1","weight": 1}], "accounts": [{"permission":{"actor":"actionsend","permission":"eosio.
+code"},"weight":1}]}' -p actionsend@owner
+
+
+cleos push action actionsend func '[""]' -p actionsend
+

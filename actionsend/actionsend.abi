@@ -1,0 +1,22 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Oct 20 14:50:18 2018",
+    "version": "eosio::abi/1.0",
+    "structs": [
+        {
+            "name": "func",
+            "base": "",
+            "fields": []
+        }
+    ],
+    "types": [],
+    "actions": [
+        {
+            "name": "func",
+            "type": "func",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [],
+    "ricardian_clauses": [],
+    "abi_extensions": []
+}
