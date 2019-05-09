@@ -9,8 +9,7 @@ namespace ampersand {
 void drtoken::create( name issuer, asset new_supply,
                       bool transfer_locked )
 {
-    require_auth( _code );
-//    require_auth2(name("amprllc"), name("create"));
+    require_auth( SLVRTOKEN_CONTRACT_ACCNAME );
     
     auto sym = new_supply.symbol;
     eosio_assert( sym.is_valid(), "invalid symbol name ");
@@ -30,8 +29,6 @@ void drtoken::create( name issuer, asset new_supply,
         } );
     // Token Already exists, reissuing with new supply
     } else {
-	require_auth( iterator->issuer );
-
         statstable.modify(iterator, same_payer, [&](auto& token_stats_record) {
             token_stats_record.total_supply += new_supply;
             token_stats_record.issuer = issuer;
@@ -85,8 +82,6 @@ void drtoken::lock( asset lock )
     auto iterator = statstable.find( symbol_code );
     eosio_assert( iterator != statstable.end(), "token with the symbol doesn't exist" );
 
-    // authorization from issuer@issuer is needed eg: amprllc@issuer
-    //require_auth((stats_record.issuer, name("issuer"));
     require_auth( iterator->issuer );
 
     statstable.modify( iterator, same_payer, [&](auto& token_stats_record) {
@@ -105,8 +100,6 @@ void drtoken::unlock( asset unlock )
     auto iterator = statstable.find( symbol_code );
     eosio_assert( iterator != statstable.end(), "token with the symbol doesn't exist" );
 
-    // authorization from issuer@issuer is needed eg: amprllc@issuer
-    //require_auth((stats_record.issuer, name("issuer"));
     require_auth( iterator->issuer );
 
     statstable.modify( iterator, same_payer, [&](auto& token_stats_record) {
@@ -131,12 +124,12 @@ void drtoken::transfer( name from, name to,
 
     const auto& token_stats_record = statstable.get( sym.raw() );
 
-    if ( token_stats_record.transfer_locked ) {
+    if ( token_stats_record.transfer_locked == true ) {
         require_auth( token_stats_record.issuer );
     }
 
-//    require_recipient(from);
-//    require_recipient(to);
+    require_recipient(from);
+    require_recipient(to);
 
     eosio_assert( quantity.is_valid(), "invalid quantity" );
     eosio_assert( quantity.amount > 0, "must transfer positive quantity" );
@@ -159,9 +152,6 @@ void drtoken::drcredit( name to, asset quantity )
                         issue, 
                         {SLVRTOKEN_CONTRACT_ACCNAME, name("active")},
                         {to, drquantity, "redemption credit"} );
-
-//    sub_balance( SLVRTOKEN_CONTRACT_ACCNAME, drquantity );
-//    add_balance( to, drquantity, SLVRTOKEN_CONTRACT_ACCNAME ); 
 }
 
 void drtoken::sub_balance( name owner, asset value )

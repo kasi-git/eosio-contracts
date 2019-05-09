@@ -20,14 +20,16 @@ namespace ampersand {
     public:
 	using contract::contract;
 
-        const name SLVRTOKEN_CONTRACT_ACCNAME = name("ampervstoken");
-        const name DRTOKEN_CONTRACT_ACCNAME = name("amperdrtoken");
+        const name SLVRTOKEN_CONTRACT_ACCNAME = name("amperistoken");
+        const name DRTOKEN_CONTRACT_ACCNAME = name("amperdxtoken");
+        const string DR_TOKEN_NAME = "ANDS";
+        const uint8_t DR_TOKEN_PRECISION = 4;
 
         slvrtoken(eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ): 
               eosio::contract(receiver, code, ds),  _issues(receiver, code.value), _customers(receiver, code.value)
         {}
 
-        ACTION issueopen( asset issue, uint64_t round );
+        ACTION issueopen( asset issue, name issuer, uint64_t round );
 
         ACTION issueclose( asset issue, uint64_t round );
 
@@ -70,13 +72,11 @@ namespace ampersand {
             asset total_supply;
             name issuer;
             uint16_t slvr_per_token_mg; // # of milligrams of silver per token
-            bool transfer_locked;
-            bool redeem_locked;
 
             uint64_t primary_key()const { return supply.symbol.raw(); }
 
             EOSLIB_SERIALIZE( currency_stats, (supply)(total_supply)(issuer)
-                               (slvr_per_token_mg)(transfer_locked)(redeem_locked) )
+                               (slvr_per_token_mg) )
         };
 
         TABLE issuestats {
@@ -102,7 +102,6 @@ namespace ampersand {
             asset issue_balance;
             uint64_t primary_key() const { return key; }
             EOSLIB_SERIALIZE( custinfo, (key)(account_name)(issue_round)(issue_balance) )
-            ///EOSLIB_SERIALIZE( custinfo, (account_name) )
        };
 
         typedef eosio::multi_index<"accounts"_n, account> accounts;
