@@ -20,8 +20,8 @@ namespace ampersand {
     public:
 	using contract::contract;
 
-        const name SLVRTOKEN_CONTRACT_ACCNAME = name("amperistoken");
-        const name DRTOKEN_CONTRACT_ACCNAME = name("amperdxtoken");
+        const name SLVRTOKEN_CONTRACT_ACCNAME = name("ampervstoken");
+        const name DRTOKEN_CONTRACT_ACCNAME = name("amperdrtoken");
         const string DR_TOKEN_NAME = "ANDS";
         const uint8_t DR_TOKEN_PRECISION = 4;
 
