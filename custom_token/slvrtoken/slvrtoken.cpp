@@ -46,7 +46,7 @@ ACTION slvrtoken::issueclose( asset issue, uint64_t round )
 
 ACTION slvrtoken::create( name issuer, asset new_supply, 
                           uint16_t slvr_per_token_mg, uint64_t issue_round, 
-                          bool transfer_locked, bool redeem_locked )
+                          bool transfer_locked, bool redeem_locked, bool contract_locked )
 {
     require_auth( _code );
 
@@ -72,6 +72,7 @@ ACTION slvrtoken::create( name issuer, asset new_supply,
             token_stats_record.supply.symbol = new_supply.symbol;
             token_stats_record.total_supply = new_supply;
             token_stats_record.issuer = issuer;
+            token_stats_record.contract_locked = contract_locked;
             token_stats_record.slvr_per_token_mg = slvr_per_token_mg;
         } );
     // Token Already exists, reissuing with new supply
@@ -169,8 +170,45 @@ ACTION slvrtoken::issue( name to, asset quantity, string memo, uint64_t issue_ro
             customer_record.issue_balance += quantity;
         } );
     }
+}
 
+ACTION slvrtoken::tokenlock( asset lock )
+{
+    eosio_assert( lock.symbol.is_valid(), "invalid symbol name" );
+    eosio_assert( lock.is_valid(), "invalid supply" );
 
+    auto symbol_code = lock.symbol.raw();
+    stats statstable( _code, symbol_code );
+
+    auto iterator = statstable.find( symbol_code );
+    eosio_assert( iterator != statstable.end(), "token with the symbol doesn't exist" );
+    eosio_assert( iterator->contract_locked == false, "contract already locked!");
+
+    require_auth( _code );
+
+    statstable.modify( iterator, same_payer, [&](auto& token_stats_record) {
+        token_stats_record.contract_locked = true;
+    } );
+}
+
+ACTION slvrtoken::tokenunlock( asset unlock )
+{
+    eosio_assert( unlock.symbol.is_valid(), "invalid symbol name" );
+    eosio_assert( unlock.is_valid(), "invalid supply" );
+
+    auto symbol_code = unlock.symbol.raw();
+    stats statstable( _code, symbol_code );
+
+    auto iterator = statstable.find( symbol_code );
+    eosio_assert( iterator != statstable.end(), 
+                  "token with the symbol doesn't exist" );
+    eosio_assert( iterator->contract_locked == true, "contract already unlocked!");
+
+    require_auth( _code );
+
+    statstable.modify( iterator, same_payer, [&](auto& token_stats_record) {
+        token_stats_record.contract_locked = false;
+    } );
 }
 
 ACTION slvrtoken::lock( asset lock, uint64_t issue_round )
@@ -182,6 +220,7 @@ ACTION slvrtoken::lock( asset lock, uint64_t issue_round )
     eosio_assert( iterator != _issues.end(), 
                   "issue round not found in issues table" );
     eosio_assert( iterator->supply.symbol == lock.symbol, "symbol doesn't match");
+    eosio_assert( iterator->transfer_locked == false, "issue already locked!");
 
     require_auth( _code );
 
@@ -199,6 +238,7 @@ ACTION slvrtoken::unlock( asset unlock, uint64_t issue_round )
     eosio_assert( iterator != _issues.end(), 
                   "issue round not found in issues table" );
     eosio_assert( iterator->supply.symbol == unlock.symbol, "symbol doesn't match");
+    eosio_assert( iterator->transfer_locked == true, "issue already unlocked!");
 
     require_auth( _code );
 
@@ -216,6 +256,7 @@ ACTION slvrtoken::redeemlock( asset lock, uint64_t issue_round )
     eosio_assert( iterator != _issues.end(), 
                   "issue round not found in issues table" );
     eosio_assert( iterator->supply.symbol == lock.symbol, "symbol doesn't match");
+    eosio_assert( iterator->redeem_locked == false, "redeem already locked!");
 
     require_auth( _code );
 
@@ -233,6 +274,7 @@ ACTION slvrtoken::redeemunlock( asset unlock ,uint64_t issue_round )
     eosio_assert( iterator != _issues.end(), 
                   "issue round not found in issues table" );
     eosio_assert( iterator->supply.symbol == unlock.symbol, "symbol doesn't match");
+    eosio_assert( iterator->redeem_locked == true, "redeem already unlocked!");
 
     require_auth( _code );
 
@@ -260,7 +302,8 @@ ACTION slvrtoken::transfer( name from, name to,
     require_recipient(to);
 
     const auto& token_stats_record = statstable.get( symbol.raw() );
-
+ 
+    eosio_assert( token_stats_record.contract_locked == false, "contract is locked");
     eosio_assert( quantity.is_valid(), "invalid quantity" );
     eosio_assert( quantity.amount > 0, "must transfer positive quantity" );
     eosio_assert( quantity.symbol == token_stats_record.supply.symbol,
@@ -285,7 +328,9 @@ ACTION slvrtoken::redeem( name owner, asset quantity )
     eosio_assert( statstable.find( symbol.raw()) != statstable.end(), 
                   "token with the symbol doesn't exist");
 
-    const auto& token_stats_record = statstable.get( symbol.raw() );
+    const auto& token_stats_record = statstable.get( symbol.raw() );  
+
+    eosio_assert( token_stats_record.contract_locked == false, "contract is locked");
 
     // burn the slvr tokens
     SEND_INLINE_ACTION( *this, 
@@ -366,6 +411,32 @@ void slvrtoken::add_balance( name owner, asset value, name ram_payer )
     }
 }
 
+void slvrtoken::purge_data( name owner )
+{
+    std::vector<uint64_t> purged_issues;
+    for ( auto& issue : _issues ) {
+        if ((issue.transfer_locked == false) && (issue.redeem_locked == false)) {
+            purged_issues.push_back(issue.round);
+        }
+    }
+    
+    std::vector<uint64_t> purged_customer_keys;
+    for ( auto& issue_round : purged_issues ) {
+        for ( auto& customer : _customers ) {
+            if ((customer.account_name == owner) && (customer.issue_round == issue_round)){
+                purged_customer_keys.push_back( customer.key );
+            }
+        }
+    }
+
+    for ( auto& key : purged_customer_keys ) {
+        auto it = _customers.find(key);
+        if(it != _customers.end()) {
+            _customers.erase (it);
+        }
+    }
+}
+
 int64_t slvrtoken::get_transfer_locked_issues_balance( name owner )
 {
     std::vector<uint64_t> locked_issues;
@@ -390,6 +461,8 @@ int64_t slvrtoken::get_transfer_locked_issues_balance( name owner )
         eosio_assert( it != _customers.end(), "invalid customer key" );
         locked_issues_balance += it->issue_balance.amount;
     }
+
+    purge_data( owner );
 
     return locked_issues_balance;
 }
@@ -418,6 +491,8 @@ int64_t slvrtoken::get_redeem_locked_issues_balance( name owner )
         eosio_assert( it != _customers.end(), "invalid customer key" );
         locked_issues_balance += it->issue_balance.amount;
     }
+
+    purge_data( owner );
 
     return locked_issues_balance;
 }
@@ -502,7 +577,7 @@ void slvrtoken::redeem_update_issue_customer_tables( name from, asset value )
             unlocked_issues.push_back( issue.round );
         }
     }
-    
+   
     std::sort( unlocked_issues.begin(), unlocked_issues.end() );
 
     std::vector<uint64_t> unlocked_customer_keys;
@@ -549,5 +624,5 @@ void slvrtoken::redeem_update_issue_customer_tables( name from, asset value )
 } /// namespace ampersand
 
 EOSIO_DISPATCH(ampersand::slvrtoken, 
-               (issueopen)(issueclose)(create)(issue)(lock)(unlock)
-               (redeemlock)(redeemunlock)(redeem)(transfer)(burn))
+                (issueopen)(issueclose)(create)(issue)(lock)(unlock) (redeemlock)(redeemunlock)(redeem)(transfer)(burn)(tokenlock)(tokenunlock))
+               

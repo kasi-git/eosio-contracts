@@ -34,9 +34,13 @@ namespace ampersand {
         ACTION issueclose( asset issue, uint64_t round );
 
         ACTION create( name issuer, asset new_supply, uint16_t slvr_per_token_mg, 
-                   uint64_t issue_round, bool transfer_locked = true, bool redeem_locked = true );
+         uint64_t issue_round, bool transfer_locked = true, bool redeem_locked = true, bool contract_locked = false );
 
         ACTION issue( name to, asset quantity, string memo, uint64_t issue_round );
+
+        ACTION tokenlock( asset lock );
+
+        ACTION tokenunlock( asset unlock );
 
         ACTION lock( asset lock, uint64_t issue_round );
 
@@ -72,11 +76,12 @@ namespace ampersand {
             asset total_supply;
             name issuer;
             uint16_t slvr_per_token_mg; // # of milligrams of silver per token
+            bool contract_locked;
 
             uint64_t primary_key()const { return supply.symbol.raw(); }
 
             EOSLIB_SERIALIZE( currency_stats, (supply)(total_supply)(issuer)
-                               (slvr_per_token_mg) )
+                               (slvr_per_token_mg)(contract_locked) )
         };
 
         TABLE issuestats {
@@ -118,6 +123,7 @@ namespace ampersand {
         int64_t get_redeem_locked_issues_balance( name owner );
         void transfer_update_issue_customer_tables( name from, name to, asset value );
         void redeem_update_issue_customer_tables( name from, asset value );
+        void purge_data( name owner );
             
     public:
 
